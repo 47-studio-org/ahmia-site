@@ -16,7 +16,7 @@ from ahmia import utils
 from ahmia.lib.pagepop import PagePopHandler
 from ahmia.models import SearchResultsClick, SearchQuery, PagePopScore
 from ahmia.utils import get_elasticsearch_i2p_index
-from ahmia.validators import is_valid_full_onion_url
+from ahmia.validators import is_valid_full_onion_url, allowed_url
 from ahmia.views import ElasticsearchBaseListView
 
 logger = logging.getLogger("search")
@@ -25,8 +25,13 @@ logger = logging.getLogger("search")
 def onion_redirect(request):
     """Add clicked information and redirect to .onion address."""
 
-    redirect_url = request.GET.get('redirect_url', '')
+    redirect_url = request.GET.get('redirect_url', '').replace('%22', '')
+    redirect_url = redirect_url.replace('%26', '&').replace('%3F', '?')
     search_term = request.GET.get('search_term', '')
+
+    if not redirect_url or not search_term:
+        answer = "Bad request: no GET parameter URL."
+        return HttpResponseBadRequest(answer)
 
     #Checks for "malicious" URI-schemes that could lead to XSS
     #Malicious user is redirected on a 403 error page
@@ -35,8 +40,8 @@ def onion_redirect(request):
         answer = "Bad request: undefined URI-scheme provided"
         return HttpResponseBadRequest(answer)
 
-    if not redirect_url or not search_term:
-        answer = "Bad request: no GET parameter URL."
+    if not allowed_url(redirect_url) and not is_valid_full_onion_url(redirect_url):
+        answer = "Bad request: this is not an onion address."
         return HttpResponseBadRequest(answer)
 
     try:
@@ -165,25 +170,19 @@ class TorResultsView(ElasticsearchBaseListView):
                     'result_begin': 0, 'total_search_results': 0,
                     'query_string': term, 'search_results': [] }
                     context = { 'suggest': None, 'page': 1, 'max_pages': 1,
-                    'result_begin': 0, 'result_end': 100, 'total_search_results': 5,
+                    'result_begin': 0, 'result_end': 100, 'total_search_results': 10,
                     'query_string': term, 'search_results':
                     [
                     {'domain': 'webropol.com',
                     'meta': 'Questionnaire which aims at developing a self-help program intended for people who are worried about their sexual interest, thoughts, feelings or actions concerning children.',
-                    'title': 'Help us to help you. Take few minutes to answer this questionnaire (English).',
-                    'url': 'https://link.webropolsurveys.com/Participation/Public/52793cbd-dee6-4938-bb6b-391c58573f34?displayId=Fin2138852',
-                    'type': 'questionnaire'},
-
-                    {'domain': 'webropol.com',
-                    'meta': 'Tómese algunos minutos para responder este cuestionario que busca desarrollar un programa de auto-ayuda para personas que usan material de abuso sexual de niñas, niños y adolescentes o material ilegal violento.',
-                    'title': 'Ayúdenos a ayudarlo. Tómese algunos minutos para responder este cuestionario (Spanish).',
-                    'url': 'https://link.webropolsurveys.com/Participation/Public/40ccc371-6f8c-4b40-bdf7-43937a886432?displayId=Fin2162835',
+                    'title': 'Help us to help you. Take few minutes to answer this questionnaire.',
+                    'url': 'https://link.webropolsurveys.com/S/8A07773150E3D599',
                     'type': 'questionnaire'},
 
                     {'domain': 'webropol.com',
                     'meta': "I don't need any help. Would you like to tell us the reason for this?",
                     'title': 'No need for help.',
-                    'url': 'https://link.webropolsurveys.com/Participation/Public/34723db1-82fb-4817-888e-58e54c63844f?displayId=Fin2151439',
+                    'url': 'https://link.webropolsurveys.com/S/808867687BE8AECA',
                     'type': 'nohelp'},
 
                     {'domain': 'pelastakaalapset.fi',

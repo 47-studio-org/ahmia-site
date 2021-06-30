@@ -53,6 +53,10 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/ahmia.fi/privkey.pem;
     ssl_certificate /etc/letsencrypt/live/ahmia.fi/fullchain.pem;
 
+    add_header Strict-Transport-Security "max-age=63072000; includeSubdomains";
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header Onion-Location http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion$request_uri;
 
     access_log  /usr/local/lib/search/error/access.log;
     error_log  /usr/local/lib/search/error/error.log;
@@ -92,7 +96,13 @@ server {
 
 server {
     listen      127.0.0.1:56789;
-    server_name msydqstlz2kzerdg.onion;
+    server_name .msydqstlz2kzerdg.onion;
+    return 301 http://juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion$request_uri;
+}
+
+server {
+    listen      127.0.0.1:56790;
+    server_name juhanurmihxlp77nkq76byazcldy2hlmovfu2epvl5ankdibsot4csyd.onion;
 
     charset     utf-8;
     client_max_body_size 75M;   # adjust to taste
